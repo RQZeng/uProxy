@@ -48,13 +48,15 @@ func (this *NetPackage) Reset() {
 }
 
 func (this *NetPackage) OnRecv(packageType uint,localAddr string,remoteAddr string) {
+	this.mPackageType	= packageType
+
 	if packageType == PACKAGE_TYPE_FRONTEND {
 		this.mFrontendRemoteAddr	= remoteAddr
 		this.mFrontendLocalAddr		= localAddr
 	}
 	if packageType == PACKAGE_TYPE_BACKEND {
 		this.mBackendRemoteAddr	= remoteAddr
-		this.mBackendLocalAddr		= localAddr
+		this.mBackendLocalAddr	= localAddr
 	}
 }
 
@@ -98,6 +100,7 @@ func LentPackage() (*NetPackage) {
 //归还
 func ReturnPackage(p *NetPackage) {
 	p.Reset()
+	glog.Error("createTs=",p.mCreateNs,",useTime=",p.mUseTime)
 	PackagePool.Put(p)
 }
 //package pool end

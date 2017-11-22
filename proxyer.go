@@ -36,6 +36,7 @@ func (this *Proxyer) OnFrontendRecv(p *NetPackage) {
 func (this *Proxyer) OnBackendRecv(p *NetPackage) {
 	f,ok := GetFrontendMgrInstance().GetFrontendByID(this.mFrontendID)
 	if ok != nil {
+		glog.Error("not found frontend=",this.mFrontendID)
 		return
 	}
 	f.SendPackage(p)

@@ -106,12 +106,13 @@ func (this *Connector) grRecv() {
 				this.OnQuit()
 				return
 			}
-
-			remoteAddr := raddr.String()
-			p.mDataLen	= n
-			p.OnRecv(PACKAGE_TYPE_FRONTEND,this.mLocalAddr,remoteAddr)
-			this.mRecvPackageChan <- p //package will be process in func grProcPackage
 		}
+		glog.Error("grRecv for ",this.mLocalAddr," n=",n)
+
+		remoteAddr := raddr.String()
+		p.mDataLen	= n
+		p.OnRecv(PACKAGE_TYPE_BACKEND,this.mLocalAddr,remoteAddr)
+		this.mRecvPackageChan <- p //package will be process in func grProcPackage
 	}
 }
 
@@ -121,7 +122,7 @@ func (this *Connector) grProcPackage() {
 		case p,ok := <-this.mRecvPackageChan:
 			if ok {
 				glog.Error("grProcPackage,createts=",p.mCreateNs)
-				GetPackageMgrInstance().OnFrontendRecv(p)
+				GetPackageMgrInstance().OnBackendRecv(p)
 			}
 		//default:
 		//	glog.Error("grProcPackage")
@@ -129,8 +130,6 @@ func (this *Connector) grProcPackage() {
 	}
 }
 
-func (this *Connector) OnRecv(buff []byte,remoteAddr string) {
-}
 
 func (this *Connector) SendTo(p *NetPackage) {
 	glog.Error("SendTo")
@@ -144,12 +143,9 @@ func (this *Connector) grSend() {
 			if ok {
 				glog.Error("grSend,createts=",p.mCreateNs,",dataLen=",p.mDataLen)
 				data := p.data[:(p.mDataLen)]
-				//svrAddr := this.mBackendAddr
-				//raddr,_:= net.ResolveUDPAddr("udp", svrAddr)
-				//glog.Error(raddr)
 				glog.Error(len(data))
-				//this.mSock.WriteToUDP(data,raddr)
 				this.mSock.Write(data)
+				this.OnSent(p)
 			}
 		//default:
 		//	glog.Error("grSend")

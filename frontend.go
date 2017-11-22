@@ -1,6 +1,7 @@
 package main
 
 import (
+	"./glog"
 	"./util"
 )
 
@@ -26,6 +27,7 @@ func (this *Frontend) Init() {
 func (this *Frontend) SendPackage(p *NetPackage) {
 	l,err := GetListenerMgrInstance().GetListenerByAddr(this.mLocalAddr)
 	if err != nil {
+		glog.Error("not found listen=",this.mLocalAddr)
 		return
 	}
 	p.mFrontendLocalAddr = this.mLocalAddr

@@ -139,6 +139,21 @@ func (this *Listener) SendTo(p *NetPackage) {
 func (this *Listener) grSend() {
 	for this.mRunning {
 		select {
+		case p,ok := <-this.mSendPackageChan:
+			if ok {
+				glog.Error("grSend,createts=",p.mCreateNs,",dataLen=",p.mDataLen)
+				data := p.data[:(p.mDataLen)]
+				glog.Error(len(data))
+				raddr,err := net.ResolveUDPAddr("udp", p.mFrontendRemoteAddr)
+				if err != nil {
+					glog.Error("grSend from " ,this.mListenAddr ," to ",p.mFrontendRemoteAddr," error")
+					continue
+				}
+				this.mSock.WriteToUDP(data,raddr)
+				this.OnSent(p)
+			}
+		//default:
+		//	glog.Error("grSend")
 		}
 	}
 }
