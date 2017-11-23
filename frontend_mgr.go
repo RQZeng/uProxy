@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"./util"
+	"./glog"
 )
 
 var frontendMgr *FrontendMgr
@@ -47,11 +48,25 @@ func (this *FrontendMgr) AddFrontend(f *Frontend) {
 }
 
 func (this *FrontendMgr) RemoveFrontend(f *Frontend) {
-	f,ok := this.GetFrontendByID(f.mID)
+	this.RemoveFrontendByID(f.mID)
+}
+
+func (this *FrontendMgr) RemoveFrontendByID(id string) {
+	f,ok := this.GetFrontendByID(id)
 	if ok != nil {
+		glog.Error("RemoveFrontendByID err,not found id=",id)
 		return
 	}
-	delete(this.mMgrTbl,f.mID)
+	f.OnDel()
+	delete(this.mMgrTbl,id)
+	this.PrintInfo()
+}
+
+func (this *FrontendMgr) PrintInfo() {
+	glog.Error("FrontendMgr len=",len(this.mMgrTbl))
+	for k,_ := range(this.mMgrTbl) {
+		glog.Error("FrontendMgr key=",k)
+	}
 }
 
 func newFrontendMgr() (*FrontendMgr) {

@@ -3,6 +3,8 @@ package main
 import (
 	"sync"
 	"errors"
+
+	"./glog"
 )
 
 var backendMgr *BackendMgr
@@ -40,12 +42,25 @@ func (this *BackendMgr) AddBackend(b *Backend) {
 }
 
 func (this *BackendMgr) RemoveBackend(b *Backend) {
-	id := b.mID
+	this.RemoveBackendByID(b.mID)
+}
+
+func (this *BackendMgr) RemoveBackendByID(id string) {
 	b,ok := this.GetBackend(id)
 	if ok != nil {
+		glog.Error("RemoveBackendByID err,not found id=",id)
 		return
 	}
+	b.OnDel()
 	delete(this.mMgrTbl,id)
+	this.PrintInfo()
+}
+
+func (this *BackendMgr) PrintInfo() {
+	glog.Error("BackendMgr len=",len(this.mMgrTbl))
+	for k,_ := range(this.mMgrTbl) {
+		glog.Error("backendMgr key=",k)
+	}
 }
 
 func newBackendMgr() (*BackendMgr) {

@@ -5,7 +5,7 @@ import (
 	"sync"
 	//"container/list"
 
-	_ "./glog"
+	"./glog"
 	"./util"
 )
 
@@ -46,6 +46,30 @@ func (this *ConnectorMgr) AddConnector(c *Connector) {
 	id := c.GetId()
 	this.mMgrTbl[id] = c 
 }
+
+func (this *ConnectorMgr) RemoveConnectorByAddr(localAddr string){
+	id := util.Md5Str(localAddr)
+	this.RemoveConnector(id)
+}
+
+func (this *ConnectorMgr) RemoveConnector(id string){
+	c,ok := this.mMgrTbl[id]
+	if !ok {
+		return
+	}
+
+	c.Stop()
+	delete(this.mMgrTbl,id)
+	this.PrintInfo()
+}
+
+func (this *ConnectorMgr) PrintInfo() {
+	glog.Error("ConnectorMgr len=",len(this.mMgrTbl))
+	for k,_ := range(this.mMgrTbl) {
+		glog.Error("ConnectorMgr key=",k)
+	}
+}
+
 
 func (this *ConnectorMgr) Start() {
 	//for k,v := range(this.mMgrTbl) {

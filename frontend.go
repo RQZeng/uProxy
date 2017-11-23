@@ -31,9 +31,35 @@ func (this *Frontend) SendPackage(p *NetPackage) {
 		return
 	}
 	p.OnProxy(p.mPackageType,this.mLocalAddr,this.mRemoteAddr)
-	//p.mFrontendLocalAddr = this.mLocalAddr
-	//p.mFrontendRemoteAddr= this.mRemoteAddr
 	l.SendTo(p)
+	this.OnSent(p)
+}
+
+func (this *Frontend) OnRecv(p *NetPackage) {
+	if p == nil {
+		return
+	}
+	this.mLastRecvTs 	= uint(util.TimeStamp())
+}
+
+func (this *Frontend) OnSent(p *NetPackage) {
+	if p == nil {
+		return
+	}
+	this.mLastSendTs	= uint(util.TimeStamp())
+}
+
+func (this *Frontend) IsBroken() bool {
+	const EXPIRE_SEC	= 10
+	curr := uint(util.TimeStamp())
+
+	if this.mLastRecvTs + EXPIRE_SEC < curr {
+		return true
+	}
+	return false
+}
+
+func (this *Frontend) OnDel() {
 }
 
 func NewFrontend(remoteAddr string,localAddr string) *Frontend {

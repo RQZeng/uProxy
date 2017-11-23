@@ -15,6 +15,7 @@ var proxyerMgrOnce sync.Once
 func GetProxyerMgrInstance() *ProxyerMgr {
 	proxyerMgrOnce.Do(func() {
 		proxyerMgr = newProxyerMgr()
+		proxyerMgr.Start()
 	})
 	return proxyerMgr
 }
@@ -22,16 +23,36 @@ func GetProxyerMgrInstance() *ProxyerMgr {
 type ProxyerMgr struct {
 	mMgrTbl 	map[string](*Proxyer)
 	mRunning	bool
+	mBrokenChannel chan string
 }
 
 func (this *ProxyerMgr) Init(){
-	this.mMgrTbl	= make(map[string](*Proxyer))
-	this.mRunning	= false
+	this.mMgrTbl		= make(map[string](*Proxyer))
+	this.mBrokenChannel	= make(chan string,100)
+	this.mRunning		= false
 }
 
 func (this *ProxyerMgr) AddProxy(p *Proxyer) {
 	id := p.mID
 	this.mMgrTbl[id] = p
+}
+
+func (this *ProxyerMgr) RemoveProxy(id string) {
+	p,ok := this.mMgrTbl[id]
+	if !ok {
+		return //errors.New("not found proxyer id="+id)
+	}
+	p.OnDel()
+	delete(this.mMgrTbl,id)
+
+	this.PrintInfo()
+}
+
+func (this *ProxyerMgr) PrintInfo() {
+	glog.Error("ProxyerMgr len=",len(this.mMgrTbl))
+	for k,_ := range(this.mMgrTbl) {
+		glog.Error("ProxyerMgr key=",k)
+	}
 }
 
 func (this *ProxyerMgr) GetProxyerByID(proxyerID string) (*Proxyer,error) {
@@ -88,15 +109,13 @@ func (this *ProxyerMgr) NewChannel(frontendRemoteAddr,frontendLocalAddr,backendR
 	GetFrontendMgrInstance().AddFrontend(f)
 
 	//后端连接点
-	c := NewConnector(backendRemoteAddr)
-	GetConnectorMgrInstance().AddConnector(c)
-	e := NewBackend(c.GetBackendAddr(),c.GetLocalAddr()) //后端实例
+	e := NewBackend(backendRemoteAddr) //后端实例
 	GetBackendMgrInstance().AddBackend(e)
 
 	//通道
 	p := NewProxyer(f.mID,e.mID) //通道实例
 	this.AddProxy(p)
-	glog.Error("NewChannel,fronend=(",frontendRemoteAddr,"->",frontendLocalAddr,") <==>"," backend=(",c.GetLocalAddr(),"->",c.GetBackendAddr(),")")
+	glog.Error("NewChannel,fronend=(",frontendRemoteAddr,"->",frontendLocalAddr,") <==>"," backend=(",e.mLocalAddr,"->",e.mRemoteAddr,")")
 }
 
 
@@ -134,6 +153,10 @@ func (this *ProxyerMgr) OnBackendRecv(p *NetPackage) {
 		return
 	}
 	proxyer.OnBackendRecv(p)
+}
+
+func (this *ProxyerMgr) Start() {
+	this.mRunning = true
 }
 
 func newProxyerMgr() (*ProxyerMgr) {

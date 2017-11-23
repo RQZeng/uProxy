@@ -23,6 +23,7 @@ type Connector struct {
 
 	mSendPackageChan 	chan *NetPackage
 	mRecvPackageChan 	chan *NetPackage
+	mStopSignal			chan bool
 
 	//send
 	mRxTs			uint
@@ -45,6 +46,7 @@ func (this *Connector) Init() {
 
 	this.mSendPackageChan	= make(chan *NetPackage,SOCKET_CHAN_LEN)
 	this.mRecvPackageChan 	= make(chan *NetPackage,SOCKET_CHAN_LEN)
+	this.mStopSignal		= make(chan bool,2)
 
 	this.mRxTs		= 0
 	this.mRxBps		= 0
@@ -89,7 +91,8 @@ func (this *Connector) GetBackendAddr() string {
 }
 
 func (this *Connector) grRecv() {
-
+	glog.Error("ID=",this.mID," grRecv Start")
+	defer this.mSock.Close()
 	//BUFF_LEN := 1024*10
 	for this.mRunning {
 		this.mSock.SetDeadline(time.Now().Add(time.Duration(1) * time.Second))
@@ -114,9 +117,11 @@ func (this *Connector) grRecv() {
 		p.OnRecv(PACKAGE_TYPE_BACKEND,this.mLocalAddr,remoteAddr)
 		this.mRecvPackageChan <- p //package will be process in func grProcPackage
 	}
+	glog.Error("ID=",this.mID," grRecv End")
 }
 
 func (this *Connector) grProcPackage() {
+	glog.Error("ID=",this.mID," grProcPackage Start")
 	for this.mRunning {
 		select {
 		case p,ok := <-this.mRecvPackageChan:
@@ -124,10 +129,19 @@ func (this *Connector) grProcPackage() {
 				//glog.Error("grProcPackage,createts=",p.mCreateNs)
 				GetPackageMgrInstance().OnBackendRecv(p)
 			}
-		//default:
-		//	glog.Error("grProcPackage")
+		//end case
+		case quit,ok := <- this.mStopSignal:
+			if ok {
+				if quit {
+					break	
+				}
+			}else {
+				glog.Error("grProcPackage err=",ok)
+			}
 		}
+		//end case
 	}
+	glog.Error("ID=",this.mID," grProcPackage End")
 }
 
 
@@ -137,6 +151,7 @@ func (this *Connector) SendTo(p *NetPackage) {
 }
 
 func (this *Connector) grSend() {
+	glog.Error("ID=",this.mID," grSend Start")
 	for this.mRunning {
 		select {
 		case p,ok := <-this.mSendPackageChan:
@@ -153,10 +168,19 @@ func (this *Connector) grSend() {
 					glog.Error("too many time to send,elapsed=",(after_ns-before_ns)/1000,1000)
 				}
 			}
-		//default:
-		//	glog.Error("grSend")
+		//end case
+		case quit,ok := <- this.mStopSignal:
+			if ok {
+				if quit {
+					break	
+				}
+			}else {
+				glog.Error("grSend err=",ok)
+			}
 		}
+		//end case
 	}
+	glog.Error("ID=",this.mID," grSend End")
 }
 
 func (this *Connector) OnSent(p *NetPackage) {
@@ -172,10 +196,19 @@ func (this *Connector) Start() {
 }
 
 func (this *Connector) OnQuit(){
+	p,err := GetProxyerMgrInstance().GetProxyerByBackendAddr(this.mLocalAddr)
+	if err != nil {
+		glog.Error("Unbelievable not found proxyer for ",this.mLocalAddr)
+		return
+	}
+	p.OnChannelBroken(CHANNEL_BROKEN_REASON_FRONTEND_SOCKET_ERR)
 }
 
 func (this *Connector) Stop() {
 	this.mRunning	= false
+	this.mStopSignal <- true
+	this.mStopSignal <- true
+
 }
 
 func NewConnector(backendAddr string) *Connector {

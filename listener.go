@@ -23,6 +23,7 @@ type Listener struct {
 
 	mSendPackageChan 	chan *NetPackage
 	mRecvPackageChan 	chan *NetPackage
+	mStopSignal			chan bool
 
 	//send
 	mRxTs			uint
@@ -55,6 +56,8 @@ func (this *Listener) Init() {
 	this.mTxBps		= 0
 	this.mTxPackNum	= 0
 	this.mTxTotalPackNum	= 0
+
+	this.mStopSignal	= make(chan bool,2)
 }
 
 func (this *Listener) GetId() string {
@@ -88,7 +91,8 @@ func (this *Listener) InitSocket() {
 }
 
 func (this *Listener) grRecv() {
-
+	glog.Error("ID=",this.mID," grRecv Start")
+	defer this.mSock.Close()
 	//BUFF_LEN := 1024*10
 	for this.mRunning {
 		this.mSock.SetDeadline(time.Now().Add(time.Duration(1) * time.Second))
@@ -112,9 +116,12 @@ func (this *Listener) grRecv() {
 		p.OnRecv(PACKAGE_TYPE_FRONTEND,this.mListenAddr,remoteAddr)
 		this.mRecvPackageChan <- p //package will be process in func grProcPackage
 	}
+	glog.Error("ID=",this.mID," grRecv End")
+
 }
 
 func (this *Listener) grProcPackage() {
+	glog.Error("ID=",this.mID," grProcPackage Start")
 	for this.mRunning {
 		select {
 		case p,ok := <-this.mRecvPackageChan:
@@ -123,10 +130,19 @@ func (this *Listener) grProcPackage() {
 				//glog.Error("grProcPackage,createts=",p.mCreateNs)
 				GetPackageMgrInstance().OnFrontendRecv(p)
 			}
+		case quit,ok := <- this.mStopSignal:
+			if ok {
+				if quit {
+					break	
+				}
+			}else {
+				glog.Error("grProcPackage err=",ok)
+			}
 		//default:
 			//glog.Error("grProcPackage")
 		}
 	}
+	glog.Error("ID=",this.mID," grProcPackage End")
 }
 
 func (this *Listener) OnRecv(buff []byte,remoteAddr string) {
@@ -137,6 +153,7 @@ func (this *Listener) SendTo(p *NetPackage) {
 }
 
 func (this *Listener) grSend() {
+	glog.Error("ID=",this.mID," grSend Start")
 	for this.mRunning {
 		select {
 		case p,ok := <-this.mSendPackageChan:
@@ -160,10 +177,21 @@ func (this *Listener) grSend() {
 			}else{
 				glog.Error("grSend not ok")
 			}
+		case quit,ok := <- this.mStopSignal:
+			if ok {
+				if quit {
+					break	
+				}
+			}else {
+				glog.Error("grSend not ok,",ok)
+			}
+
 		//default:
 		//	glog.Error("grSend")
 		}
 	}
+	glog.Error("grSend end,listen=",this.mListenAddr)
+	glog.Error("ID=",this.mID," grSend End")
 }
 
 func (this *Listener) OnSent(p *NetPackage) {
@@ -180,10 +208,14 @@ func (this *Listener) Start() {
 }
 
 func (this *Listener) OnQuit(){
+	glog.Error("unbelievable,listener=",this.mListenAddr)
+	this.Stop()
 }
 
 func (this *Listener) Stop() {
 	this.mRunning	= false
+	this.mStopSignal <- true
+	this.mStopSignal <- true
 }
 
 func NewListener(port uint,backendAddr string) *Listener {

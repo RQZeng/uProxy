@@ -12,6 +12,4 @@
 # --svr_addr5=192.168.0.55:50008
 # --log_dir=./
 
-./uProxy
---listen_port1=50005
---svr_addr1=127.0.0.1:51005
+./uProxy -channel_conf=./channel.json
