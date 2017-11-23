@@ -69,7 +69,7 @@ func (this *ListenerMgr) InitListener(portList []uint,backendAddrList []string) 
 
 func (this *ListenerMgr) Start() {
 	for k,v := range(this.mMgrTbl) {
-		glog.Error("Start listen id=",k)
+		glog.Error("Start listen id=",k,",listenAddr=",v.GetListenAddr(),",svrAddr=",v.GetBackendAddr())
 		go v.Start()
 	}
 }

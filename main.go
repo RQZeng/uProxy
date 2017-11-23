@@ -9,27 +9,25 @@ import (
 	//"sync"
 	//"net"
 	//"reflect"
-	"container/list"
+	//"container/list"
 	"flag"
 	"runtime"
+	"encoding/json"
+	"io/ioutil"
 
 	//user package
 	//"./util"
 	"./glog"
 )
 
-var g_quit bool 	= false
-var listen_port1 *uint	= flag.Uint("listen_port1", 50015, "listen port")
-var listen_port2 *uint	= flag.Uint("listen_port2", 50115, "listen port")
-var listen_port3 *uint	= flag.Uint("listen_port3", 50215, "listen port")
-var listen_port4 *uint	= flag.Uint("listen_port4", 50315, "listen port")
-var listen_port5 *uint	= flag.Uint("listen_port5", 50415, "listen port")
+type Channel struct {                          
+	ListenPort  uint     `json:"listen"`
+	SvrAddr     string  `json:"forwardto"`
+}     
 
-var svr_addr1 *string	= flag.String("svr_addr1", "127.0.0.1:50005", "svr addr")
-var svr_addr2 *string	= flag.String("svr_addr2", "127.0.0.1:50105", "svr addr")
-var svr_addr3 *string	= flag.String("svr_addr3", "127.0.0.1:50205", "svr addr")
-var svr_addr4 *string	= flag.String("svr_addr4", "127.0.0.1:50305", "svr addr")
-var svr_addr5 *string	= flag.String("svr_addr5", "127.0.0.1:50405", "svr addr")
+var g_quit bool 	= false
+var channel_conf *string 	= flag.String("channel_conf","./channel.json","channel config")
+var core_num	*int		= flag.Int("core_num",1,"core num")
 
 func Usage() {
 	fmt.Println("Usage:")
@@ -46,84 +44,30 @@ func flushLog(){
 }
 
 func main() {
-	runtime.GOMAXPROCS(1)
+	runtime.GOMAXPROCS(*core_num)
 	flag.Parse()
 	defer glog.Flush()
-	glog.Error("Start Server,Listen port1=",*listen_port1)
-	glog.Error("Start Server,Listen port2=",*listen_port2)
-	glog.Error("Start Server,Listen port3=",*listen_port3)
-	glog.Error("Start Server,Listen port4=",*listen_port4)
-	glog.Error("Start Server,Listen port5=",*listen_port5)
 
-	glog.Error("Start Server,server addr1=",*svr_addr1)
-	glog.Error("Start Server,server addr2=",*svr_addr2)
-	glog.Error("Start Server,server addr3=",*svr_addr3)
-	glog.Error("Start Server,server addr4=",*svr_addr4)
-	glog.Error("Start Server,server addr5=",*svr_addr5)
+	content, _ := ioutil.ReadFile(*channel_conf)                                  
+	var channels []Channel
+	err := json.Unmarshal(content, &channels) 
+	if err != nil {
+		glog.Error(err)
+		return
+	}
+
 
 	go flushLog()
 
-	//go RunServer(*port,*channel_num)
-	/*
-	portList := [...]uint {
-					*listen_port1,
-					*listen_port2,
-					*listen_port3,
-					*listen_port4,
-					*listen_port5}
-	backendAddrList := [...]string {
-					*svr_addr1,
-					*svr_addr2,
-					*svr_addr3,
-					*svr_addr4,
-					*svr_addr5}
-	*/
-	portList := list.New()
-	backendAddrList := list.New()
-	if *listen_port1 != 0 {
-		portList.PushBack(*listen_port1)
-		backendAddrList.PushBack(*svr_addr1)
-	}
-
-	if *listen_port2 != 0 {
-		portList.PushBack(*listen_port2)
-		backendAddrList.PushBack(*svr_addr2)
-	}
-
-	if *listen_port3 != 0 {
-		portList.PushBack(*listen_port3)
-		backendAddrList.PushBack(*svr_addr3)
-	}
-
-	if *listen_port4 != 0 {
-		portList.PushBack(*listen_port4)
-		backendAddrList.PushBack(*svr_addr4)
-	}
-
-	if *listen_port5 != 0 {
-		portList.PushBack(*listen_port5)
-		backendAddrList.PushBack(*svr_addr5)
-	}
-
-
 
 	//portArr := make([uint,
-	listLen := portList.Len()
+	listLen := len(channels)
 	portArr := make([]uint,listLen)
 	backendAddrArr := make([]string,listLen)
 
-	
-	//for i:=0;i<listLen;i++ {
-	i := 0
-	for e:=portList.Front();e!=nil;e=e.Next() {
-		portArr[i] = e.Value.(uint)
-		i++
-	}
-
-	i = 0
-	for e:=backendAddrList.Front();e!=nil;e=e.Next() {
-		backendAddrArr[i] = e.Value.(string)
-		i++
+	for i:=0;i<len(channels);i++ {
+		portArr[i] = channels[i].ListenPort
+		backendAddrArr[i] = channels[i].SvrAddr
 	}
 
 	m := GetListenerMgrInstance()
