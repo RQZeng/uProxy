@@ -30,8 +30,7 @@ func (this *Backend) SendPackage(p *NetPackage) {
 		glog.Error("not found connector=",this.mLocalAddr)
 		return
 	}
-	p.mBackendLocalAddr	= this.mLocalAddr
-	p.mBackendLocalAddr	= this.mRemoteAddr
+	p.OnProxy(p.mPackageType,this.mLocalAddr,this.mRemoteAddr) 
 	c.SendTo(p)
 }
 

@@ -30,8 +30,9 @@ func (this *Frontend) SendPackage(p *NetPackage) {
 		glog.Error("not found listen=",this.mLocalAddr)
 		return
 	}
-	p.mFrontendLocalAddr = this.mLocalAddr
-	p.mFrontendRemoteAddr= this.mRemoteAddr
+	p.OnProxy(p.mPackageType,this.mLocalAddr,this.mRemoteAddr)
+	//p.mFrontendLocalAddr = this.mLocalAddr
+	//p.mFrontendRemoteAddr= this.mRemoteAddr
 	l.SendTo(p)
 }
 

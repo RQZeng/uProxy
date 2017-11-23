@@ -3,6 +3,7 @@ package main
 
 import (
 	"sync"
+	"strconv"
 
 	"./glog"
 	"./util"
@@ -38,6 +39,9 @@ func (this *NetPackage) Init() {
 	this.data					= make([]byte,BUFF_LEN)
 	this.mCreateNs				= util.NanoTimeStamp()
 	this.mUseTime				= 0
+
+	this.mRecvDataNs			= 0
+	this.mSendDataNs			= 0
 }
 
 func (this *NetPackage) Reset() {
@@ -45,6 +49,9 @@ func (this *NetPackage) Reset() {
 	this.mFrontendRemoteAddr 	= ""
 	this.mBackendLocalAddr 		= ""
 	this.mBackendRemoteAddr 	= ""
+
+	this.mRecvDataNs			= 0
+	this.mSendDataNs			= 0
 }
 
 func (this *NetPackage) OnRecv(packageType uint,localAddr string,remoteAddr string) {
@@ -58,6 +65,7 @@ func (this *NetPackage) OnRecv(packageType uint,localAddr string,remoteAddr stri
 		this.mBackendRemoteAddr	= remoteAddr
 		this.mBackendLocalAddr	= localAddr
 	}
+	this.mRecvDataNs			= util.NanoTimeStamp()
 }
 
 func (this *NetPackage) OnProxy(packageType uint,localAddr string,remoteAddr string) {
@@ -69,6 +77,26 @@ func (this *NetPackage) OnProxy(packageType uint,localAddr string,remoteAddr str
 		this.mBackendRemoteAddr		= remoteAddr
 		this.mBackendLocalAddr		= localAddr
 	}
+}
+
+func (this *NetPackage) OnDone() {
+	this.mSendDataNs	= util.NanoTimeStamp()
+}
+
+func (this *NetPackage) GetElapsed() int64 {
+	return this.mSendDataNs - this.mRecvDataNs
+}
+
+func (this *NetPackage) String() string {
+	str := ""
+	str += "createTs=" + strconv.FormatInt(this.mCreateNs,10)
+	str += "frontend=>("+this.mFrontendRemoteAddr+"->"+this.mFrontendLocalAddr+")"
+	str += " backend=>("+this.mBackendLocalAddr+"->"+this.mBackendRemoteAddr+")"
+	//str += " elapse=" + strconv.FormatInt(this.GetElapsed(),10) +"ns"
+	elapsed_ms := this.GetElapsed()/1000/1000
+	str += " elapse=" + strconv.FormatInt(elapsed_ms,10) +"ms"
+	str += " useTime=" + strconv.Itoa(int(this.mUseTime))
+	return str
 }
 
 func newPackage() (*NetPackage) {
@@ -99,8 +127,13 @@ func LentPackage() (*NetPackage) {
 
 //归还
 func ReturnPackage(p *NetPackage) {
+	p.OnDone()
+	const EXPIRE_NS = 20 * 1000 * 1000 //20ms
+	if(p.GetElapsed() > EXPIRE_NS){
+		glog.Error(p)
+	}
 	p.Reset()
-	glog.Error("createTs=",p.mCreateNs,",useTime=",p.mUseTime)
+	//glog.Error("createTs=",p.mCreateNs,",useTime=",p.mUseTime)
 	PackagePool.Put(p)
 }
 //package pool end
@@ -130,7 +163,7 @@ func (this *PackageMgr) Init(){
 }
 
 func (this *PackageMgr) OnFrontendRecv(p *NetPackage) {
-	glog.Error("OnFrontendRecv")
+	//glog.Error("OnFrontendRecv")
 	this.mPackageChan <- p //package will been process in func grProcPackage
 }
 
@@ -151,7 +184,7 @@ func (this *PackageMgr) grProcPackage() {
 		select {
 		case p,ok := <- this.mPackageChan:
 			if ok {
-				glog.Error("type=",p.mPackageType)
+				//glog.Error("type=",p.mPackageType)
 				if p.mPackageType == PACKAGE_TYPE_FRONTEND {
 					GetProxyerMgrInstance().OnFrontendRecv(p)
 				}

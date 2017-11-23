@@ -102,7 +102,7 @@ func (this *ProxyerMgr) NewChannel(frontendRemoteAddr,frontendLocalAddr,backendR
 
 func (this *ProxyerMgr) OnFrontendRecv(p *NetPackage) {
 	remoteAddr := p.mFrontendRemoteAddr
-	glog.Error("OnFrontendRecv,remoteAddr=",remoteAddr)
+	//glog.Error("OnFrontendRecv,remoteAddr=",remoteAddr)
 
 	_,err := GetFrontendMgrInstance().GetFrontendByAddr(remoteAddr)
 	if err != nil {

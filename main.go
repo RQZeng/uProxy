@@ -11,6 +11,7 @@ import (
 	//"reflect"
 	"container/list"
 	"flag"
+	"runtime"
 
 	//user package
 	//"./util"
@@ -18,17 +19,17 @@ import (
 )
 
 var g_quit bool 	= false
-var listen_port1 *uint	= flag.Uint("listen_port1", 0, "listen port")
-var listen_port2 *uint	= flag.Uint("listen_port2", 0, "listen port")
-var listen_port3 *uint	= flag.Uint("listen_port3", 0, "listen port")
-var listen_port4 *uint	= flag.Uint("listen_port4", 0, "listen port")
-var listen_port5 *uint	= flag.Uint("listen_port5", 0, "listen port")
+var listen_port1 *uint	= flag.Uint("listen_port1", 50015, "listen port")
+var listen_port2 *uint	= flag.Uint("listen_port2", 50115, "listen port")
+var listen_port3 *uint	= flag.Uint("listen_port3", 50215, "listen port")
+var listen_port4 *uint	= flag.Uint("listen_port4", 50315, "listen port")
+var listen_port5 *uint	= flag.Uint("listen_port5", 50415, "listen port")
 
-var svr_addr1 *string	= flag.String("svr_addr1", "192.168.0.55:50005", "svr addr")
-var svr_addr2 *string	= flag.String("svr_addr2", "192.168.0.55:50006", "svr addr")
-var svr_addr3 *string	= flag.String("svr_addr3", "192.168.0.55:50007", "svr addr")
-var svr_addr4 *string	= flag.String("svr_addr4", "192.168.0.55:50008", "svr addr")
-var svr_addr5 *string	= flag.String("svr_addr5", "192.168.0.55:50009", "svr addr")
+var svr_addr1 *string	= flag.String("svr_addr1", "127.0.0.1:50005", "svr addr")
+var svr_addr2 *string	= flag.String("svr_addr2", "127.0.0.1:50105", "svr addr")
+var svr_addr3 *string	= flag.String("svr_addr3", "127.0.0.1:50205", "svr addr")
+var svr_addr4 *string	= flag.String("svr_addr4", "127.0.0.1:50305", "svr addr")
+var svr_addr5 *string	= flag.String("svr_addr5", "127.0.0.1:50405", "svr addr")
 
 func Usage() {
 	fmt.Println("Usage:")
@@ -45,6 +46,7 @@ func flushLog(){
 }
 
 func main() {
+	runtime.GOMAXPROCS(1)
 	flag.Parse()
 	defer glog.Flush()
 	glog.Error("Start Server,Listen port1=",*listen_port1)

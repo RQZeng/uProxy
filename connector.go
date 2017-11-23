@@ -107,7 +107,7 @@ func (this *Connector) grRecv() {
 				return
 			}
 		}
-		glog.Error("grRecv for ",this.mLocalAddr," n=",n)
+		//glog.Error("grRecv for ",this.mLocalAddr," n=",n)
 
 		remoteAddr := raddr.String()
 		p.mDataLen	= n
@@ -121,7 +121,7 @@ func (this *Connector) grProcPackage() {
 		select {
 		case p,ok := <-this.mRecvPackageChan:
 			if ok {
-				glog.Error("grProcPackage,createts=",p.mCreateNs)
+				//glog.Error("grProcPackage,createts=",p.mCreateNs)
 				GetPackageMgrInstance().OnBackendRecv(p)
 			}
 		//default:
@@ -132,7 +132,7 @@ func (this *Connector) grProcPackage() {
 
 
 func (this *Connector) SendTo(p *NetPackage) {
-	glog.Error("SendTo")
+	//glog.Error("SendTo")
 	this.mSendPackageChan <- p
 }
 
@@ -141,11 +141,17 @@ func (this *Connector) grSend() {
 		select {
 		case p,ok := <-this.mSendPackageChan:
 			if ok {
-				glog.Error("grSend,createts=",p.mCreateNs,",dataLen=",p.mDataLen)
+				before_ns := util.NanoTimeStamp()
+				//glog.Error("grSend,createts=",p.mCreateNs,",dataLen=",p.mDataLen)
 				data := p.data[:(p.mDataLen)]
-				glog.Error(len(data))
+				//glog.Error(len(data))
 				this.mSock.Write(data)
 				this.OnSent(p)
+				after_ns := util.NanoTimeStamp()
+				const EXPIRE_NS = 10 * 1000 * 1000
+				if after_ns-before_ns> EXPIRE_NS {
+					glog.Error("too many time to send,elapsed=",(after_ns-before_ns)/1000,1000)
+				}
 			}
 		//default:
 		//	glog.Error("grSend")

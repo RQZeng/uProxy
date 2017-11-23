@@ -95,7 +95,7 @@ func (this *Listener) grRecv() {
 		p := LentPackage()
 
 		n, raddr, err := this.mSock.ReadFromUDP(p.data[0:])
-		glog.Error("grRecv n=" ,n)
+		//glog.Error("grRecv n=" ,n)
 		if err != nil {
 			nerr,ok := err.(net.Error)
 			if ok && nerr.Timeout() {
@@ -118,12 +118,12 @@ func (this *Listener) grProcPackage() {
 	for this.mRunning {
 		select {
 		case p,ok := <-this.mRecvPackageChan:
-			glog.Error("grProcPackage")
+			///glog.Error("grProcPackage")
 			if ok {
-				glog.Error("grProcPackage,createts=",p.mCreateNs)
+				//glog.Error("grProcPackage,createts=",p.mCreateNs)
 				GetPackageMgrInstance().OnFrontendRecv(p)
 			}
-		default:
+		//default:
 			//glog.Error("grProcPackage")
 		}
 	}
@@ -141,9 +141,10 @@ func (this *Listener) grSend() {
 		select {
 		case p,ok := <-this.mSendPackageChan:
 			if ok {
-				glog.Error("grSend,createts=",p.mCreateNs,",dataLen=",p.mDataLen)
+				before_ns := util.NanoTimeStamp()
+				//glog.Error("grSend,createts=",p.mCreateNs,",dataLen=",p.mDataLen)
 				data := p.data[:(p.mDataLen)]
-				glog.Error(len(data))
+				//glog.Error(len(data))
 				raddr,err := net.ResolveUDPAddr("udp", p.mFrontendRemoteAddr)
 				if err != nil {
 					glog.Error("grSend from " ,this.mListenAddr ," to ",p.mFrontendRemoteAddr," error")
@@ -151,6 +152,13 @@ func (this *Listener) grSend() {
 				}
 				this.mSock.WriteToUDP(data,raddr)
 				this.OnSent(p)
+				after_ns := util.NanoTimeStamp()
+				const EXPIRE_NS = 10 * 1000 * 1000
+				if after_ns-before_ns> EXPIRE_NS {
+					glog.Error("too many time to send,elapsed=",(after_ns-before_ns)/1000,1000)
+				}
+			}else{
+				glog.Error("grSend not ok")
 			}
 		//default:
 		//	glog.Error("grSend")
