@@ -28,6 +28,7 @@ type Channel struct {
 var g_quit bool 	= false
 var channel_conf *string 	= flag.String("channel_conf","./channel.json","channel config")
 var core_num	*int		= flag.Int("core_num",1,"core num")
+var loop_back	*int		= flag.Int("loop_back",0,"loop back port")
 
 func Usage() {
 	fmt.Println("Usage:")
@@ -73,6 +74,11 @@ func main() {
 	m := GetListenerMgrInstance()
 	m.InitListener(portArr[0:listLen],backendAddrArr[0:listLen])
 	m.Start()
+
+	if *loop_back != 0 {
+		l := NewListener(uint(*loop_back),"")
+		l.StartAsLoopBack()
+	}
 
 
 	interval := 3000 // 3s

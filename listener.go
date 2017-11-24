@@ -24,6 +24,7 @@ type Listener struct {
 	mSendPackageChan 	chan *NetPackage
 	mRecvPackageChan 	chan *NetPackage
 	mStopSignal			chan bool
+	mIsLoopBack		bool
 
 	//send
 	mRxTs			uint
@@ -58,6 +59,7 @@ func (this *Listener) Init() {
 	this.mTxTotalPackNum	= 0
 
 	this.mStopSignal	= make(chan bool,2)
+	this.mIsLoopBack	= false
 }
 
 func (this *Listener) GetId() string {
@@ -128,7 +130,11 @@ func (this *Listener) grProcPackage() {
 			///glog.Error("grProcPackage")
 			if ok {
 				//glog.Error("grProcPackage,createts=",p.mCreateNs)
-				GetPackageMgrInstance().OnFrontendRecv(p)
+				if this.mIsLoopBack {
+					this.SendTo(p)
+				}else {
+					GetPackageMgrInstance().OnFrontendRecv(p)
+				}
 			}
 		case quit,ok := <- this.mStopSignal:
 			if ok {
@@ -205,6 +211,11 @@ func (this *Listener) Start() {
 	go this.grRecv()
 	go this.grProcPackage()
 	go this.grSend()
+}
+
+func (this *Listener) StartAsLoopBack() {
+	this.mIsLoopBack = true
+	this.Start()
 }
 
 func (this *Listener) OnQuit(){
