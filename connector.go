@@ -201,7 +201,7 @@ func (this *Connector) OnQuit(){
 		glog.Error("Unbelievable not found proxyer for ",this.mLocalAddr)
 		return
 	}
-	p.OnChannelBroken(CHANNEL_BROKEN_REASON_FRONTEND_SOCKET_ERR)
+	p.OnChannelBroken(CHANNEL_BROKEN_REASON_BACKEND_SOCKET_ERR)
 }
 
 func (this *Connector) Stop() {

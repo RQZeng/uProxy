@@ -93,11 +93,11 @@ func (this *Proxyer) String() string{
 
 const(
 	CHANNEL_BROKEN_REASON_NONE	= iota
-	CHANNEL_BROKEN_REASON_UNKNOW
+	CHANNEL_BROKEN_REASON_UNKNOW //1
 	CHANNEL_BROKEN_REASON_FRONTEND_USER_CLOSE 	//前端用户主动关闭
 	CHANNEL_BROKEN_REASON_FRONTEND_SOCKET_ERR	//前端socket错误
 	CHANNEL_BROKEN_REASON_FRONTEND_NONE_DATA	//前端很久没有接受到数据了
-	CHANNEL_BROKEN_REASON_BACKEND_SERVER_CLOSE
+	CHANNEL_BROKEN_REASON_BACKEND_SERVER_CLOSE //5
 	CHANNEL_BROKEN_REASON_BACKEND_SOCKET_ERR
 	CHANNEL_BROKEN_REASON_BACKEND_NONE_DATA	
 )
@@ -122,6 +122,7 @@ func (this *Proxyer) grCheckChannelStatus() {
 	glog.Error("id=",this.mID," grCheckChannelStatus Start")
 	const CHECK_INTERVAL_MS	= 30
 	tick := time.NewTicker(time.Millisecond * time.Duration(CHECK_INTERVAL_MS))
+	defer tick.Stop()
 	for !this.mChannelBroken {
 		select {
 		case <- tick.C:

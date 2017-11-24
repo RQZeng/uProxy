@@ -53,7 +53,7 @@ func (this *Backend) IsBroken() bool {
 	const EXPIRE_SEC	= 10
 	curr := uint(util.TimeStamp())
 
-	if this.mLastRecvTs + EXPIRE_SEC < curr {
+	if (this.mLastRecvTs + EXPIRE_SEC < curr) && (this.mLastSendTs + EXPIRE_SEC < curr) {
 		return true
 	}
 	return false
